@@ -5,46 +5,40 @@ description: >
   Use for /ponytail-help, "ponytail help", "how do I use ponytail".
 ---
 
-# Ponytail Help
+# Ponytail 帮助
 
-Display this reference card when invoked. One-shot, do NOT change mode,
-write flag files, or persist anything.
+被调用时显示下面这张卡片。一次性显示，不要改档位、不要写文件、不要持久化任何东西。
 
-## Levels
+## 档位
 
-| Level | Trigger | What change |
-|-------|---------|-------------|
-| **Lite** | `/ponytail lite` | Build what was asked; when a smaller option exists, first names it in one line. |
-| **Full** | `/ponytail` | The smallest complete change, a check where the logic needs one, and a reply that names what was skipped and any risk. Default. |
-| **Ultra** | `/ponytail ultra` | Also names, before building, any requested part the need does not justify; still builds it unless you drop it. |
+| 档位 | 触发 | 改动方式 |
+|------|------|----------|
+| **精简** | `/ponytail lite` | 照需求做；有更小的方案时，先用一行说出来。 |
+| **完整** | `/ponytail` | 最小完整改动，逻辑需要时加一处检查，结尾说明跳过了什么、有什么风险。默认。 |
+| **极致** | `/ponytail ultra` | 动手前先点名哪些需求理由不足；仍然照做，除非你说不要。 |
 
-The level stays until you change it.
+档位会一直保持，直到你改它。
 
-## Skills
+## 技能
 
-| Skill | Trigger | What it does |
-|-------|---------|--------------|
-| **ponytail** | `/ponytail` | Lazy mode itself: least new code, clear replies that name skipped work and risks. |
-| **ponytail-review** | `/ponytail-review` | Quality review of a diff: bugs, security, load, missing tests, speed, what to cut. Each finding says what goes wrong and how to fix it. |
-| **ponytail-audit** | `/ponytail-audit` | The same quality review for the whole repo, ranked. |
-| **ponytail-debt** | `/ponytail-debt` | Harvest `shortcut:` comments into a tracked ledger. |
-| **ponytail-gain** | `/ponytail-gain` | Measured-impact scoreboard: less code, less cost, more speed. |
-| **ponytail-help** | `/ponytail-help` | This card. |
+| 技能 | 触发 | 作用 |
+|------|------|------|
+| **ponytail** | `/ponytail` | 懒惰模式本身：最少新代码，回复里说清跳过了什么、有什么风险。 |
+| **ponytail-review** | `/ponytail-review` | 审查一次改动：缺陷、安全、负载、缺测试、速度、能砍什么。每条都说明会怎样出错、怎么改。 |
+| **ponytail-audit** | `/ponytail-audit` | 对整个仓库做同样的审查，按重要性排序。 |
+| **ponytail-debt** | `/ponytail-debt` | 把 `shortcut:` 注释收成一份账本。 |
+| **ponytail-gain** | `/ponytail-gain` | 基准收益记分牌：更少代码、更低成本、更快。 |
+| **ponytail-help** | `/ponytail-help` | 这张卡片。 |
 
-In DeepSeek Harness all six are slash commands, registered by this plugin. Type
-`/` in the composer to see them.
+在 DeepSeek Harness 里，六个技能都是斜杠命令，由本插件注册。在输入框里敲 `/` 就能看到。
 
-## Deactivate
+## 关闭
 
-`/ponytail off` turns the rules off; the model gets one line telling it to drop
-them. `/ponytail` with no argument reports the current level, and switches off
-back to full. Resume with `/ponytail` or the banner above the composer.
+`/ponytail off` 关掉规则；模型会收到一行提示，让它丢弃这些规则。`/ponytail` 不带参数时报告当前档位；当前是关闭则切回完整。用 `/ponytail` 或输入框上方的横幅恢复。
 
-## Level
+## 档位保存在哪
 
-The level is this plugin's `mode` setting. `/ponytail lite|full|ultra|off`
-writes it, the banner above the composer switches it, and both persist per
-profile in `cordis.patch.yml`:
+档位就是本插件的 `mode` 设置。`/ponytail lite|full|ultra|off` 写它，输入框上方的横幅切换它，两者都按 profile 保存在 `cordis.patch.yml` 里：
 
 ```yaml
 - id: ponytail
@@ -53,18 +47,16 @@ profile in `cordis.patch.yml`:
     mode: full
 ```
 
-A `mode` pinned in the home patch or a `--patch` overlay wins; switching then
-fails and the reason is shown.
+如果在 home 级 patch 或 `--patch` overlay 里固定了 `mode`，切换会被拒绝并显示原因。
 
-## Update
+## 更新
 
 ```sh
 dsh plugin --profile <profile> add github:BRSBSC/dsh-ponytail#<sha>
 ```
 
-Pin a commit, then restart the app or reload the profile.
+把 commit 写死，然后重启应用或重载 profile。
 
-## More
+## 更多
 
-Rules text and upstream docs: https://github.com/DietrichGebert/ponytail
-
+规则原文与上游文档：https://github.com/DietrichGebert/ponytail

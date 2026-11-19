@@ -66,38 +66,31 @@ tested and fixed later. This is a report the user asked for, so give it in full.
   add layers, frameworks or config the problem does not need.
 - No style taste, no "consider", no vague worries.
 
-## 4. Output
+## 4. 输出
 
-Simple language: short sentences, everyday words. Explain a technical term
-the first time you use it. The reader may never have seen this code.
+用简单的话：短句，日常用词。技术名词第一次出现时解释一句。读者可能从没见过这段代码。
 
-Start with `What this repo does:` in two or three sentences, and the load
-you assumed.
+开头写“这个仓库是做什么的：”，两三句，并说明你假设的负载。
 
-Then the findings in three groups, most important first, skip empty groups:
-- **Must fix:** bug, security, data loss, breaks at the expected load.
-- **Should fix:** risky code without a test, real slowness, duplication, a
-  function that mixes jobs, code that should not exist.
-- **Nice to have:** small speed-ups, shorter forms.
+然后按三组列问题，最重要的在前，空组不写：
+- **必须修：** 缺陷、安全问题、数据丢失、在预期负载下会坏。
+- **应该修：** 有风险但没测试、确实慢、重复、一个函数混了几件事、本不该存在的代码。
+- **可以更好：** 小的提速、更短的写法。
 
-Number findings across all groups, so the user can say "fix 2 and 5". At
-most 20 findings; if you left smaller ones out, say how many.
-Every finding has all four parts, each one or two short sentences:
+问题跨组连续编号，方便用户说“修 2 和 5”。最多 20 条；更小的问题没列时，说明还有几条。
+每个问题写全四部分，每部分一两句短话：
 
-2. **Orders land on the wrong day** (`billing/close_day.py:L40-52`)
-   - **What this is:** At midnight this job closes the day and bills all orders of that day.
-   - **Problem:** It takes "today" from the server clock, which runs in UTC. An order placed
-     at 00:30 in Berlin is billed on the day before.
-   - **Fix:** Compute the day once in the shop's time zone:
-     `datetime.now(ZoneInfo("Europe/Berlin")).date()`. One line, nothing else changes.
-   - **If we skip it:** Late orders show the wrong date, and accounting fixes them by hand.
+2. **订单记到了错误的日期**（`billing/close_day.py:40-52`）
+   - **这是什么：** 这个任务每天零点关闭当天账目，给当天所有订单计费。
+   - **问题：** 它用服务器时钟取“今天”，而服务器跑在 UTC。柏林时间 00:30 下的订单会被算到前一天。
+   - **改法：** 在店铺时区里只算一次日期：`datetime.now(ZoneInfo("Europe/Berlin")).date()`。一行，其他都不动。
+   - **不改的后果：** 晚下的订单日期是错的，财务手工改。
 
-End with:
-- `Verdict:` one line: healthy, or what to fix first.
-- `Lean: -<N> lines, -<M> dependencies possible.` when lean findings exist.
-- `Not checked:` the parts you did not read or could not run.
+结尾：
+- `结论：` 一行：健康，或先修什么。
+- `精简：` 有精简项时写 `还能少 <N> 行、少 <M> 个依赖。`
+- `没检查：` 没读或没法跑的部分。
 
-Nothing found: `What this repo does:`, then `Healthy. Nothing to fix.` and
-one line on what you checked.
+什么都没发现：先写“这个仓库是做什么的：”，再写“健康，没有要修的。”，最后一行说明查了什么。
 
-One-shot report, changes no code.
+一次性报告，不改代码。

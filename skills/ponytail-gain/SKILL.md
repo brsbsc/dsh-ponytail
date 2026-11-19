@@ -25,18 +25,18 @@ Render plain ASCII bars. The bar length shows ponytail as a share of the
 no-skill baseline; the label carries the exact figure:
 
 ```
-  ponytail gain           benchmark · 39 tasks × 5 runs · Opus 5.5
+  ponytail 收益           基准 · 39 个任务 × 5 次运行 · Opus 5.5
 
-  no-skill        ████████████████████  100%
-  Lines of code   █████████···········   47%   ▼ 53%
-  Output tokens   ███████████·········   55%   ▼ 45%
-  Cost            ███████████████·····   74%   ▼ 26%
-  Time            ████████████········   59%   ▼ 41%
-  Hidden checks passed   97%  (no-skill 96%)
-  Tests where the logic needs one   98%  (no-skill 68%)
+  无技能            ████████████████████  100%
+  代码行数          █████████···········   47%   ▼ 53%
+  输出 token        ███████████·········   55%   ▼ 45%
+  成本              ███████████████·····   74%   ▼ 26%
+  时间              ████████████········   59%   ▼ 41%
+  隐藏检查通过率    97%（无技能 96%）
+  逻辑需要检查处有测试   98%（无技能 68%）
 
-  This repo:  /ponytail-debt  (shortcuts you deferred)
-              /ponytail-audit (what's still cuttable)
+  这个仓库：  /ponytail-debt（你推迟的捷径）
+              /ponytail-audit（还有什么可以砍）
 ```
 
 ## Honesty boundary

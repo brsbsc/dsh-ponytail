@@ -6,6 +6,8 @@ window.__ModuleLoader__.load({
   factory: (require) => {
     const React = require('react')
 
+    // Must stay in step with `LEVELS` + 'off' in lib/rules.js; this half is a browser
+    // module and cannot import it.
     const MODES = ['lite', 'full', 'ultra', 'off']
     // Profile entry id of the host plugin row; its `mode` field is the level.
     // The same id names this plugin's locale dictionary.
@@ -56,6 +58,11 @@ window.__ModuleLoader__.load({
         snapshot = next
         for (const listener of [...listeners]) listener()
       }
+      // The message lives in the snapshot, so the next successful sync clears it too.
+      const failed = (message) => {
+        if (snapshot) set({ ...snapshot, error: message })
+        return message
+      }
       const hide = (reason) => {
         if (!warned) {
           warned = true
@@ -78,19 +85,21 @@ window.__ModuleLoader__.load({
         const entry = response.value?.namespaces?.find(view => view.ns === NS)
         const mode = entry?.value?.mode
         if (!MODES.includes(mode)) return hide(entry ? `invalid mode ${JSON.stringify(mode)}` : 'no "ponytail" settings entry')
-        set({ mode, writable: response.value.writable })
+        set({ mode, writable: response.value.writable, error: null })
       }
       const setMode = async (mode) => {
-        generation++
+        const mine = ++generation
         let response
         try {
           response = await remote.settings.update(NS, { mode }, undefined)
         } catch (error) {
-          return messageOf(error)
+          return failed(messageOf(error))
         }
         // A rejected write must return text: the banner clears `pending` from the result.
-        if (!response?.ok) return response?.error?.message ?? 'switch failed'
-        set({ mode: response.value?.value?.mode ?? mode, writable: snapshot?.writable ?? true })
+        if (!response?.ok) return failed(response?.error?.message ?? 'switch failed')
+        // A newer load or write superseded this one; it already put newer truth on screen.
+        if (mine !== generation) return null
+        set({ mode: response.value?.value?.mode ?? mode, writable: snapshot?.writable ?? true, error: null })
         return null
       }
       return {
@@ -132,7 +141,6 @@ window.__ModuleLoader__.load({
     // `input` is the composer's InputState, spread into the props by the dock's owner.
     function Banner({ usePonytail, setMode, inputActions, input, t }) {
       const [pending, setPending] = React.useState(false)
-      const [error, setError] = React.useState(null)
       const state = usePonytail(snapshot => snapshot)
       if (!state) return null
       // setDraft replaces the whole draft and is not undoable: keep typed text, never drop reference chips.
@@ -145,12 +153,9 @@ window.__ModuleLoader__.load({
       const choose = (mode) => {
         if (mode === state.mode) return
         setPending(true)
-        setError(null)
-        // Both arms clear `pending`: a rejected write must not leave the buttons disabled.
-        setMode(mode).then(
-          (failure) => { setPending(false); setError(failure) },
-          (error) => { setPending(false); setError(messageOf(error)) },
-        )
+        // The failure text rides on the store, so a later sync clears it too; this only
+        // guarantees `pending` never sticks.
+        setMode(mode).catch(() => {}).finally(() => setPending(false))
       }
       // The group holds only the levels; review and audit are commands, so they sit outside it.
       return h('div', { className: 'dsh-ponytail' },
@@ -170,7 +175,7 @@ window.__ModuleLoader__.load({
         h('button', { type: 'button', 'data-action': 'review', title: t('hint.review'), onClick: () => draftCommand('/ponytail-review ') }, t('review')),
         h('span', { className: 'dsh-ponytail-sep', 'aria-hidden': true }),
         h('button', { type: 'button', 'data-action': 'audit', title: t('hint.audit'), onClick: () => draftCommand('/ponytail-audit ') }, t('audit')),
-        error ? h('span', { role: 'alert', className: 'dsh-ponytail-error' }, t('switch.failed', { message: error })) : null,
+        state.error ? h('span', { role: 'alert', className: 'dsh-ponytail-error' }, t('switch.failed', { message: state.error })) : null,
       )
     }
 

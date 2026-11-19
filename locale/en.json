@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Ponytail",
+    "description": "Adds the ponytail \"lazy senior developer\" ruleset to every turn's system prompt, in one of four levels: lite, full, ultra, or off. Switch levels with /ponytail, or with the level banner above the composer in the Web and Desktop apps; the level is saved in this profile's cordis.patch.yml. Also registers six ponytail skills, such as /ponytail-review and /ponytail-audit, callable only from a slash command. In lite and ultra, a first step that called a tool without saying its one line gets one reminder message on the next step; nothing else adds a model request. A preset that contributes a complete system prompt replaces every section, so the rules do not apply there.",
+    "detail": "docs/DETAIL.md"
+  }
+}

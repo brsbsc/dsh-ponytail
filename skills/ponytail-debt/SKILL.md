@@ -23,20 +23,17 @@ Each hit is one ledger row. The comment prefix keeps prose that merely mentions
 the convention out of the ledger. Skip hits that are not a deferral, like a note
 about a keyboard shortcut.
 
-## Output
+## 输出
 
-One row per marker, grouped by file:
+每个标记一行，按文件分组：
 
-`<file>:<line>, <what was simplified>. ceiling: <the limit named>. upgrade: <the trigger to revisit>.`
+`<文件>:<行号>，简化了什么。上限：<写明的限制>。升级：<何时回头看>。`
 
-The convention is `shortcut: <ceiling>, <upgrade path>`, so pull the ceiling
-and the trigger straight from the comment. Want an owner per row too? add
-`git blame -L<line>,<line>`.
+约定是 `shortcut: <限制>, <升级触发>`，上限和触发条件直接从注释里取。想每行带 owner 就加 `git blame -L<行号>,<行号>`。
 
-Flag the rot risk: any marker comment that names no upgrade path or
-trigger gets a `no-trigger` tag, those are the ones that silently rot.
+标出腐坏风险：没写升级路径或触发条件的标记，打上 `无触发` 标签，这些会悄悄烂掉。
 
-End with `<N> markers, <M> with no trigger.` Nothing found: `No shortcut debt. Clean ledger.`
+结尾写 `<N> 个标记，<M> 个没有触发条件。` 什么都没找到：`没有 shortcut 债务，账本干净。`
 
 ## Boundaries
 

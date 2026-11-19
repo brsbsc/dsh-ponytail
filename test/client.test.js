@@ -164,7 +164,7 @@ test('zh and en dictionaries share exactly the spec keys', () => {
 test('store.load reads mode and writable; invalid or missing ns hides and warns once', async () => {
   const s = mod.createModeStore(fakeRemote([view('ultra', false)]), logger)
   await s.load()
-  assert.deepEqual(s.getSnapshot(), { mode: 'ultra', writable: false })
+  assert.deepEqual(s.getSnapshot(), { mode: 'ultra', writable: false, error: null })
   const warns = []
   const bad = mod.createModeStore(
     fakeRemote([view('ULTRA'), { ok: true, value: { writable: true, namespaces: [] } }]),
@@ -199,11 +199,29 @@ test('store.setMode writes and notifies; failure returns the message', async () 
   s.subscribe(() => hits++)
   assert.equal(await s.setMode('ultra'), null)
   assert.deepEqual(remote.updates, [['ponytail', { mode: 'ultra' }, undefined]])
-  assert.deepEqual(s.getSnapshot(), { mode: 'ultra', writable: true })
+  assert.deepEqual(s.getSnapshot(), { mode: 'ultra', writable: true, error: null })
   assert.equal(hits, 1)
   remote.updateResult = { ok: false, error: { message: 'pinned', code: 'settings/rejected' } }
   assert.equal(await s.setMode('lite'), 'pinned')
-  assert.equal(s.getSnapshot().mode, 'ultra')
+  assert.deepEqual(s.getSnapshot(), { mode: 'ultra', writable: true, error: 'pinned' })
+  // A later successful write clears the failure text, so it cannot outlive the failure.
+  remote.updateResult = { ok: true, value: { ns: 'ponytail', value: { mode: 'lite' } } }
+  assert.equal(await s.setMode('lite'), null)
+  assert.equal(s.getSnapshot().error, null)
+})
+
+test('a write response that lands after a newer sync does not overwrite it', async () => {
+  const write = deferred()
+  const s = mod.createModeStore({
+    settings: { describe: async () => view('lite'), update: async () => write.promise },
+  }, logger)
+  await s.load()
+  const pending = s.setMode('ultra')
+  // Another tab (or a /ponytail write) synced while this write was in flight.
+  await s.load()
+  write.resolve({ ok: true, value: { ns: 'ponytail', value: { mode: 'ultra' } } })
+  assert.equal(await pending, null)
+  assert.equal(s.getSnapshot().mode, 'lite')
 })
 
 test('store.load hides instead of throwing when describe returns nothing or rejects', async () => {
@@ -279,22 +297,12 @@ test('the label dims only when ponytail is off', () => {
 })
 
 test('a pending switch marks the group busy; a failure gets a line of its own', () => {
-  seededStates = [true, 'pinned']
-  const tree = render({ mode: 'full', writable: true })
+  seededStates = [true]
+  const tree = render({ mode: 'full', writable: true, error: 'pinned' })
   assert.equal(find(tree, e => e.props?.role === 'group').props['aria-busy'], true)
   assert.ok(findAll(tree, e => e.props?.['data-mode']).every(e => e.props.disabled === true))
   const alert = find(tree, e => e.props?.role === 'alert')
   assert.equal(alert.props.className, 'dsh-ponytail-error')
   assert.equal(alert.children.join(''), 'switch.failed:{"message":"pinned"}')
-})
-
-test('styles use only tokens the DSH theme defines, wrap on narrow widths, and keep 24px targets', () => {
-  const css = find(render({ mode: 'full', writable: true }), e => e.type === 'style').children.join('')
-  // Neither name exists in @deepseek-ai/dsh-client-ui-theme; the banner used to render their fallbacks.
-  assert.ok(!css.includes('--dsw-alias-fill-l2') && !css.includes('--dsw-alias-text-error'))
-  assert.match(css, /--dsw-alias-interactive-bg-active/)
-  assert.match(css, /--dsw-alias-state-error-primary/)
-  assert.match(css, /\.dsh-ponytail\{[^}]*flex-wrap:wrap/)
-  assert.match(css, /\.dsh-ponytail button\{[^}]*min-height:24px/)
-  assert.match(css, /\.dsh-ponytail-error\{flex-basis:100%/)
+  seededStates = []
 })

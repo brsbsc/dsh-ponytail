@@ -3,12 +3,14 @@ import assert from 'node:assert/strict'
 import { Config, apply } from '../index.js'
 
 // Services and records stay apart: in DSH `ctx.skills` is the service itself.
-// `ctx.config` mimics the volatile reference DSH passes; a settings write commits into it.
-function fakeCtx({ commands = true, skills = true, settings = true, mode = 'full' } = {}) {
-  const rec = { sections: [], commands: [], skills: [], warnings: [], updates: [], listeners: {} }
+// `ctx.config` mimics the volatile reference DSH passes; a config-editor write commits into it.
+function fakeCtx({ commands = true, skills = true, editor = true, mode = 'full' } = {}) {
+  const rec = { sections: [], commands: [], skills: [], warnings: [], edits: [], listeners: {} }
   const ctx = {
     rec,
     state: { mode },
+    // The loader stamps the owning entry on the plugin's own fiber.
+    fiber: { entry: { options: { id: 'ponytail' } } },
     systemPrompt: { section: (s) => { rec.sections.push(s); return () => {} } },
     on: (event, fn) => { rec.listeners[event] = fn },
     logger: { warn: (...a) => rec.warnings.push(a) },
@@ -20,7 +22,15 @@ function fakeCtx({ commands = true, skills = true, settings = true, mode = 'full
   ctx.config = { mode: { get: () => ctx.state.mode }, sectionOrder: 10150 }
   if (commands) ctx.commands = { register: (d) => { rec.commands.push(d); return () => {} } }
   if (skills) ctx.skills = { register: (s) => { rec.skills.push(s); return () => {} } }
-  if (settings) ctx.settings = { update: async (ns, patch) => { rec.updates.push([ns, patch]); ctx.state.mode = patch.mode } }
+  if (editor) {
+    ctx.configEditor = {
+      edit: async (entry, change) => {
+        const next = change({ mode: ctx.state.mode, sectionOrder: 10150 }, {})
+        rec.edits.push([entry, next])
+        ctx.state.mode = next.mode
+      },
+    }
+  }
   return ctx
 }
 
@@ -48,25 +58,28 @@ test('rules follow the settings value', () => {
   assert.match(ctx.rules(), /^PONYTAIL MODE OFF/)
 })
 
-test('/ponytail <level> writes the setting', async () => {
+test('/ponytail <level> writes the setting through the config editor', async () => {
   const ctx = fakeCtx()
   apply(ctx, ctx.config)
   assert.deepEqual(await ctx.run('  Ultra '), { kind: 'success', text: 'ponytail ultra' })
-  assert.deepEqual(ctx.rec.updates, [['ponytail', { mode: 'ultra' }]])
+  assert.equal(ctx.rec.edits.length, 1)
+  assert.equal(ctx.rec.edits[0][0], ctx.fiber.entry)
+  assert.deepEqual(ctx.rec.edits[0][1], { mode: 'ultra', sectionOrder: 10150 })
   assert.ok(ctx.rules().includes('level: ultra'))
   await ctx.run(' ultra')
-  assert.equal(ctx.rec.updates.length, 2)
+  assert.equal(ctx.rec.edits.length, 2)
 })
 
 test('bare /ponytail turns off into full and otherwise only reports', async () => {
   const off = fakeCtx({ mode: 'off' })
   apply(off, off.config)
   assert.deepEqual(await off.run(''), { kind: 'success', text: 'ponytail full' })
-  assert.deepEqual(off.rec.updates, [['ponytail', { mode: 'full' }]])
+  assert.equal(off.rec.edits.length, 1)
+  assert.equal(off.rec.edits[0][1].mode, 'full')
   const lite = fakeCtx({ mode: 'lite' })
   apply(lite, lite.config)
   assert.deepEqual(await lite.run(''), { kind: 'success', text: 'ponytail lite' })
-  assert.equal(lite.rec.updates.length, 0)
+  assert.equal(lite.rec.edits.length, 0)
 })
 
 test('invalid level is an error and writes nothing', async () => {
@@ -75,22 +88,36 @@ test('invalid level is an error and writes nothing', async () => {
   const r = await ctx.run(' loud')
   assert.equal(r.kind, 'error')
   assert.match(r.text, /lite\|full\|ultra\|off/)
-  assert.equal(ctx.rec.updates.length, 0)
+  assert.equal(ctx.rec.edits.length, 0)
 })
 
-test('a refused settings write returns its reason and keeps the level', async () => {
+test('a refused config edit returns its reason and keeps the level', async () => {
   const ctx = fakeCtx()
-  ctx.settings.update = async () => { throw new Error('mode is pinned by the home patch') }
+  ctx.configEditor.edit = async () => { throw new Error('mode is pinned by the home patch') }
   apply(ctx, ctx.config)
   assert.deepEqual(await ctx.run(' ultra'), { kind: 'error', text: 'mode is pinned by the home patch' })
   assert.ok(ctx.rules().includes('level: full'))
 })
 
-test('without a settings service: argument errors, bare reports', async () => {
-  const ctx = fakeCtx({ settings: false })
+test('without a config editor: argument errors, bare reports', async () => {
+  const ctx = fakeCtx({ editor: false })
   apply(ctx, ctx.config)
-  assert.deepEqual(await ctx.run(' ultra'), { kind: 'error', text: 'Settings service unavailable; set mode in cordis.yml' })
+  assert.deepEqual(await ctx.run(' ultra'), {
+    kind: 'error',
+    text: '无法在本 profile 保存配置；请在 cordis.patch.yml 里设置 mode',
+  })
   assert.deepEqual(await ctx.run(''), { kind: 'success', text: 'ponytail full' })
+})
+
+test('a mounted entry that the loader did not stamp cannot be saved', async () => {
+  const ctx = fakeCtx({ mode: 'off' })
+  ctx.fiber = {}
+  apply(ctx, ctx.config)
+  assert.deepEqual(await ctx.run(' ultra'), {
+    kind: 'error',
+    text: '无法在本 profile 保存配置；请在 cordis.patch.yml 里设置 mode',
+  })
+  assert.equal(ctx.rec.edits.length, 0)
 })
 
 test('registers all 6 skills with source runtime', () => {

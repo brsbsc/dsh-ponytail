@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "马尾辫 · Ponytail",
+    "description": "把 ponytail「懒惰资深开发者」规则集注入每轮系统提示词，分精简、完整、极致、关闭四档。用 /ponytail 切档，或在 Web 与桌面版输入框上方的档位横幅里点选；档位保存在本 profile 的 cordis.patch.yml 里。同时注册 6 个 ponytail skill（例如 /ponytail-review、/ponytail-audit），只能用斜杠命令调用。精简和极致档下，首步直接调用工具而没说那一句时，会在下一步补一条提醒消息；除此之外不额外发模型请求。自带完整系统提示词的 preset 会替换掉全部提示词段，规则在其中不生效。",
+    "detail": "docs/DETAIL.zh.md"
+  }
+}

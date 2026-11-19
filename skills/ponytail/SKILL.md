@@ -51,5 +51,5 @@ Never cut: validation at trust boundaries, error handling that prevents data los
 | **full** | The rules above. Default. |
 | **ultra** | Also question the request: before any tool call or code, name in one line each requested part the need does not justify and what dropping it would save, like the example below. Skip the line when every part is justified. Still build all of it unless the user drops it. |
 
-- lite: "Smaller option: one in-memory script without the database layer, about 60% less code. Building what you asked."
-- ultra: "Not justified by the need: user roles (one user today, ~50 lines) and CSV export (nobody reads it yet, ~30 lines). Building all of it unless you drop them."
+- lite: "更小的做法：去掉数据库层，只写一个内存脚本，少写约 60% 的代码。按你要的做。"
+- ultra: "理由不足的部分：用户角色（现在只有一个用户，约 50 行）和 CSV 导出（还没人读，约 30 行）。除非你说不要，否则照做。"

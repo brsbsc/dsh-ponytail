@@ -34,6 +34,11 @@ test('filterSkillBodyForMode works on CRLF input', () => {
   )
 })
 
+test('filterSkillBodyForMode keeps a body that opens with a rule line', () => {
+  // parseSkillFile already stripped the frontmatter; a second strip would eat this.
+  assert.equal(filterSkillBodyForMode('---\nkept\n---\n', 'lite'), '---\nkept\n---\n')
+})
+
 test('buildRules', () => {
   // Models with in-history prompt updates keep earlier system snapshots, so off must revoke them.
   assert.match(buildRules('off', body), /^PONYTAIL MODE OFF — disregard ponytail rules/)
@@ -44,14 +49,18 @@ test('buildRules', () => {
 
 test('the language rule rides on every level, including off', () => {
   for (const mode of ['lite', 'full', 'ultra', 'off']) {
-    assert.ok(buildRules(mode, body).includes('始终用简体中文回复'), mode)
+    const rules = buildRules(mode, body)
+    assert.ok(rules.includes('始终用简体中文回复'), mode)
+    // Templates no longer license English labels: a fixed label must be translated too.
+    assert.ok(rules.includes('译成中文再写'), mode)
+    assert.ok(!rules.includes('照抄，不翻译'), mode)
   }
 })
 
 test('each level keeps only its own example line', () => {
-  assert.ok(filterSkillBodyForMode(body, 'lite').includes('- lite: "Smaller option'))
+  assert.ok(filterSkillBodyForMode(body, 'lite').includes('- lite: "更小的做法'))
   assert.ok(!filterSkillBodyForMode(body, 'lite').includes('- ultra: "'))
-  assert.ok(filterSkillBodyForMode(body, 'ultra').includes('- ultra: "Not justified'))
+  assert.ok(filterSkillBodyForMode(body, 'ultra').includes('- ultra: "理由不足'))
   assert.ok(!/^- (lite|ultra): "/m.test(filterSkillBodyForMode(body, 'full')))
 })
 

@@ -1,15 +1,14 @@
 import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import z from '@deepseek-ai/schemastery'
-import { buildReminder, buildRules } from './lib/rules.js'
+import { LEVELS, buildReminder, buildRules } from './lib/rules.js'
 import { loadSkills } from './lib/skills.js'
 
 export const name = 'dsh-ponytail'
 export const inject = ['systemPrompt']
 
-const MODES = ['lite', 'full', 'ultra', 'off']
-// The profile entry id this package's cordis.patch.yml inserts; settings address it by that id.
-const SETTINGS_NS = 'ponytail'
+// One source for the levels the rules filter knows; `off` has no table row.
+const MODES = [...LEVELS, 'off']
 
 function normalizeMode(value) {
   const mode = String(value).trim().toLowerCase()
@@ -69,18 +68,20 @@ export function apply(ctx, config) {
   ctx.inject(['commands'], (inner) => {
     inner.commands.register({
       name: 'ponytail',
-      description: 'Switch ponytail level',
+      description: '切换 ponytail 档位',
       input: { hint: '[lite|full|ultra|off]' },
       handler: async ({ rawInput }) => {
         const current = config.mode.get()
         const wanted = rawInput.trim()
         if (wanted === '' && current !== 'off') return { kind: 'success', text: 'ponytail ' + current }
         const next = wanted === '' ? 'full' : normalizeMode(wanted)
-        if (!next) return { kind: 'error', text: 'Usage: /ponytail [lite|full|ultra|off]' }
-        const settings = ctx.get('settings')
-        if (!settings) return { kind: 'error', text: 'Settings service unavailable; set mode in cordis.yml' }
+        if (!next) return { kind: 'error', text: '用法：/ponytail [lite|full|ultra|off]' }
         try {
-          await settings.update(SETTINGS_NS, { mode: next })
+          // 档位改动走 config editor：它拥有 profile patch，并把 volatile 的 mode 原地写进正在运行的 fiber。
+          const editor = ctx.get('configEditor')
+          const entry = ctx.fiber?.entry
+          if (!editor || !entry) throw new Error('无法在本 profile 保存配置；请在 cordis.patch.yml 里设置 mode')
+          await editor.edit(entry, raw => ({ ...raw, mode: next }))
         } catch (e) {
           return { kind: 'error', text: e.message }
         }

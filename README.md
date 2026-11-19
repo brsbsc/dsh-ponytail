@@ -29,6 +29,8 @@ dsh plugin --profile desktop add github:BRSBSC/dsh-ponytail
 
 装好后用 `dsh --profile web --dump-config` 检查，输出里应该有 `# == dsh-ponytail` 这一层。
 
+然后在 **插件管理** 里确认 `dsh-ponytail` 的开关是打开的（标题「Ponytail / 马尾辫」，带图标和详情页）。开关关闭时，本包的 `cordis.patch.yml` 不会插入 `ponytail` 这一层，规则、`/ponytail` 和横幅都不会出现；只在 profile 的 `cordis.patch.yml` 里写一行 `- id: ponytail` 覆盖行不会创建这个层，Loader 会以 `patch: entry "ponytail" not found` 跳过它。
+
 卸载：`dsh plugin --profile web remove dsh-ponytail`。
 
 ## 使用
@@ -44,7 +46,7 @@ dsh plugin --profile desktop add github:BRSBSC/dsh-ponytail
 
 lite 和 ultra 下，如果模型第一步没说那一句就直接调用了工具，插件会在下一步附上一行提醒，让它补上。工具调用之后本来就有下一步，所以不会多发请求。
 
-档位就是本插件的设置项 `mode`，保存在当前 profile 的 `cordis.patch.yml` 里（例如 `$DSH_HOME/profiles/web/cordis.patch.yml`）。因此 web、desktop、CLI 各自保存自己的档位。
+档位就是本插件的设置项 `mode`，保存在当前 profile 的 `cordis.patch.yml` 里（例如 `$DSH_HOME/profiles/web/cordis.patch.yml`）。因此 web、desktop、CLI 各自保存自己的档位。`/ponytail` 和横幅都通过 DSH 的 config editor 写入（`mode` 是 volatile 字段，写入后原地生效，不重载插件），所以被 home 级 patch 或 `--patch` overlay 固定时，DSH 会拒绝并显示原因。
 
 ## 横幅
 
@@ -76,7 +78,7 @@ CLI/TUI 里不显示横幅。profile 只读时，四个档位按钮会禁用。
 - 自带完整系统提示词的 preset（声明了 `complete` 段的，例如 `minimal`）会替换掉全部提示词段，ponytail 规则在其中不生效。
 - skill 优先级：Web 和桌面版里，每个 preset 自己挂载的 skill 来源（包括项目里的 `.dsh/skills`、`.agents/skills`，以及 `~/.dsh/skills`、`~/.agents/skills`）都会覆盖本插件注册的同名 skill。只有在单层组合（例如 TUI）里，本插件才优先于用户目录。
 - 浏览器端 `client.js` 手写成 DSH 内部的模块格式（`window.__ModuleLoader__`），DSH 升级后可能需要跟着调整，所以 `engines.dsh` 限定在 `<0.3.0`。
-- 横幅只在 Web 版实测过（2026-10-21，无头 Chromium）：渲染、点击切换、`/ponytail` 命令都正常。桌面版用的是同一份 `client.js`，但还没有在桌面版里实际点过。
+- 横幅在 Web 版（2026-10-21，无头 Chromium）和桌面版（2026-11-19，DSH 0.2.2-rc.5）都实测过：桌面版这一轮直接点横幅切档，profile 的 `cordis.patch.yml` 里 `mode` 随之变成 `ultra`，系统提示词里也出现了对应档位的规则。`/ponytail` 命令这一轮没有在桌面版里手动敲过，只有单元测试覆盖。
 
 ### 与上游 ponytail 的差异
 
@@ -105,6 +107,8 @@ npm test
 npm install
 npm test
 ```
+
+`npm test` 里除了规则、命令、横幅的单元测试，还有一组 manifest 检查：`exports`/`files` 是否带上 `locale`、`docs`、`icon.svg`，每个语言包的 `meta.title`/`meta.description`/`meta.detail` 是否齐全，详情文档是否只有一行图片，SVG 是否自包含（无脚本、样式、文字、外链）。
 
 ## 许可
 

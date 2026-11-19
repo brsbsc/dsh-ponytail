@@ -31,6 +31,11 @@ test('loadSkills loads the 6 vendored skills', () => {
   assert.ok(skills.every(s => s.description.length > 0 && s.content.length > 0 && path.isAbsolute(s.path)))
 })
 
+test('loadSkills returns a name-sorted list, not filesystem order', () => {
+  const { skills } = loadSkills(SKILLS_DIR)
+  assert.deepEqual(skills.map(s => s.name), [...skills.map(s => s.name)].sort((a, b) => a.localeCompare(b)))
+})
+
 test('loadSkills reports a broken skill and keeps the rest', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-ponytail-'))
   fs.mkdirSync(path.join(tmp, 'good'))
